@@ -1,2 +1,2 @@
 # AlloyDesignSP
-Sampling Methods for efficient DoE in alloy design using DFT
+Sampling Methods for efficient DoE in DFT-driven alloy design
