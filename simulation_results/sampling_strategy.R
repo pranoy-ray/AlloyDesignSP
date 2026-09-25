@@ -36,62 +36,66 @@ simplex_trans <- function(X) {
   return(ans)
 }
 
-
-# Boundary-emphasizing transformation that pushes support points toward the boundary of the simplex.
-scaled_SP <- function(X) {
-  a <- lapply(1:ncol(X), function(i) {
-    ifelse(X[, i] < 0.5, X[, i] - min(X[, i]) / 2,
-          ifelse(X[, i] > 0.5, X[, i] + (1 - max(X[, i])) / 2, X[, i]))
-  })
-  b <- Reduce('+', a)
-  ans <- lapply(1:ncol(X), function(i) {
-    a[[i]] / b
-  })
-  ans <- Reduce(cbind, ans)
-  return(ans)
-}
-
-
 ################################################
 # ------------ Random Sampling ------------
-get_rand_idx <- function(X, n, seed) {
+get_rand <- function(X, n, seed) {
   set.seed(seed)
   N <- nrow(X)
   rdx <- sample(N, n)
-  return(rdx)
+  ans <- list(idx = rdx, X_sub = X[rdx, , drop = FALSE])
+  return(ans)
 }
 
 # ------------ QMC Sampling (Sobol' sequence) ------------
-get_sobol_idx <- function(X, n, seed) {
+get_sobol <- function(X, n, seed) {
   p <- ncol(X)
-  sobol <- spacefillr::generate_sobol_owen_set(n, p-1, seed)
+  sobol <- spacefillr::generate_sobol_set(n, p-1, seed)
   sobol_simp <- simplex_trans(sobol)
   b <- SPlit::subsample(X, sobol_simp)
-  return(b)
+  ans <- list(idx = b, X_sub = X[b, , drop = FALSE])
+  return(ans)
 }
 
 # ------------ K-medoids clustering ------------
-get_k_medoids_idx <- function(X, n, seed) {
+get_k_medoids <- function(X, n, seed) {
   set.seed(seed)
-  medoids = cluster::pam(X, n, variant = "faster")
-  return(medoids$id.med)
+  medoids <- cluster::pam(X, n, variant = "faster")
+  ans <- list(idx = medoids$id.med, X_sub = X[medoids$id.med, , drop = FALSE])
+  return(ans)
 }
 
 # ------------ Support Points ------------
-get_sp_idx <- function(X, n, seed) {
+get_sp <- function(X, n, seed, ini = NA) {
   set.seed(seed)
   p <- ncol(X)
-  X_sp <- support::sp(n, p, dist.samp = X)$sp
+  X_sp <- support::sp(n, p, dist.samp = X, ini = ini)$sp
   X_sp_idx <- SPlit::subsample(X, X_sp)
-  return(X_sp_idx) # return the row indices of the representative points in X
+  list(idx = X_sp_idx, X_sub = X[X_sp_idx, , drop = FALSE])
 }
 
-# ------------ Scaled Support Points ------------
-get_ssp_idx <- function(X, n, seed) {
-  set.seed(seed)
+
+# ------------ Scaled Support Points (paper Eqs. 14-17) ------------
+get_ssp <- function(X, n, seed, kappa = 1) {
+  if (is.null(kappa)) kappa <- 1
+  stopifnot(length(kappa) == 1L, is.finite(kappa), kappa >= 0, kappa <= 1)
   p <- ncol(X)
-  X_sp <- support::sp(n, p, dist.samp = X)$sp
-  X_scaled_sp <- scaled_SP(X_sp)
-  X_sp_idx <- SPlit::subsample(X, X_scaled_sp) # idx of representative points for X
-  return(X_sp_idx)
+  sp <- get_sp(X, n, seed)
+  if (kappa == 0) return(sp)
+  X_sp <- sp$X_sub
+  lambda <- vapply(seq_len(p), function(i) {
+    a <- X_sp[X_sp[, i] > 1 / p, i]
+    b <- X_sp[X_sp[, i] < 1 / p, i]
+    bounds <- c((1 - a) / (a - 1 / p), b / (1 / p - b))
+    # A coordinate identically at the centroid does not move under scaling.
+    if (length(bounds)) min(bounds) else 0
+  }, numeric(1)) * kappa
+  X_ssp <- sweep(X_sp, 2, 1 + lambda, "*")
+  X_ssp <- sweep(X_ssp, 2, lambda / p, "-")
+  X_ssp <- pmax(X_ssp, 0) # Keep matrix dimensions while removing boundary roundoff.
+  g <- apply(X_ssp,1,sum)
+  stopifnot(all(is.finite(g)), all(g > 0))
+  X_ssp <- sweep(X_ssp, 1, g, "/")
+  X_ssp_idx <- SPlit::subsample(X, X_ssp)
+  ans <- list(idx = X_ssp_idx, X_sub = X[X_ssp_idx, , drop = FALSE])
+  return(ans)
 }

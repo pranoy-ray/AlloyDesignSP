@@ -1,0 +1,8 @@
+# Local task notes and generated documentation previews
+/task_plan.md
+/notes.md
+/simulation_results/README.html
+/simulation_results/README_files/
+
+# Keep numerical results and figures; omit local execution logs.
+/simulation_results/figures/*.log

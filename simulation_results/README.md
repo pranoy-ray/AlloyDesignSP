@@ -1,78 +1,51 @@
-# Figure Guide and Simulation Results
+# Simulation results and figure guide
 
-This folder contains the R scripts, datasets, saved simulation results, and figure files for **"Optimal mixture designs for alloy compositions"**.
+R scripts for **Optimal mixture designs for alloy compositions**. All generated plots, numerical results, checkpoints, and session records go in [`figures/`](figures/).
 
-## Figure_2.R — Figure 2: Sampling strategies
+## Run
 
-[Figure_2.R](Figure_2.R) illustrates three sampling strategies on a three-component simplex, using 1,000 candidate points and a design size of six. It sources [sampling_strategy.R](sampling_strategy.R), selects the design points, and draws them in red on ternary plots.
+Tested with R 4.5.2. Install missing packages once:
 
-| Paper panel | Sampling method | Output filename |
-| --- | --- | --- |
-| Figure 2(a) | Random sampling | [rand_X.png](rand_X.png) |
-| Figure 2(b) | Quasi-Monte Carlo (QMC) sampling | [sobol_X.png](sobol_X.png) |
-| Figure 2(c) | K-medoids clustering | [k_med_X.png](k_med_X.png) |
+```r
+install.packages(c("spacefillr", "SPlit", "cluster", "support", "rkriging",
+                   "Ternary", "magick", "PlotTools", "MOFAT",
+                   "ggplot2", "tidyr", "tidyselect"))
+```
 
-Each panel is exported separately at **7 × 6 inches, 600 dpi**. 
+From the repository root:
 
-## Figure_3.R — Figure 3: MSE for SP and SSP
+```sh
+Rscript --vanilla simulation_results/run_all.R
+Rscript --vanilla simulation_results/verify_results.R
+```
 
-[Figure_3.R](Figure_3.R) compares support points (SP) and scaled support points (SSP), with six design points selected from the same three-component candidate set. It sources [sampling_strategy.R](sampling_strategy.R) and [MMSE_calculation.R](MMSE_calculation.R).
+This runs Figures 2–4, D4 and D7 experiments, their prediction/runtime plots, and the D7 coordinate-maxima analysis. The full run uses 30 replications and takes tens of minutes on this machine. Each script also works from `simulation_results/` (e.g. `Rscript --vanilla Figure_2.R`) or via an absolute path from another directory. Rerunning regenerates its outputs.
 
-The script evaluates MSE on a simplex test set generated from 40,000 QMC points, using the isotropic Gaussian correlation with `theta = 1`. It plots the MSE as a color map, overlays the design points in red, and uses a common color scale for both methods.
+For individual plots, run `D4.R` before `plot_D4.R`, `D7.R` before `plot_D7.R`, and both experiments before `plot_runtime.R`. `D7_max_level.R` runs independently. Partial experiment checkpoints are saved after each design size; plotting requires a completed run. Restart an interrupted experiment by rerunning its script.
 
-| Paper panel | Method | Output filename |
-| --- | --- | --- |
-| Figure 3(a) | SP | [MSE_ternary_SP.png](MSE_ternary_SP.png) |
-| Figure 3(b) | SSP | [MSE_ternary_SSP.png](MSE_ternary_SSP.png) |
+## Paper → script → output
 
-Each panel is exported separately at **7 × 6 inches, 600 dpi**. 
+All filenames below are relative to `figures/`. Prediction plots contain **full**, **boundary**, and **interior** test-set panels, in that order.
 
-## Figure_4.R — Figure 4: Sensitivity to the shift magnitude
+| Paper figure | Script(s) | What is plotted | Figure output |
+| --- | --- | --- | --- |
+| 2(a–c) | [`Figure_2.R`](Figure_2.R) | Random, Sobol QMC, and K-medoids designs on the three-component simplex | `rand_X.png`, `sobol_X.png`, `k_med_X.png` |
+| 3(a–b) | [`Figure_3.R`](Figure_3.R) | SP and SSP MSE surfaces at isotropic Gaussian lengthscale `theta = 0.45`, with a common color scale | `MSE_ternary_SP.png`, `MSE_ternary_SSP_kappa_1.png` |
+| 4 | [`Figure_4.R`](Figure_4.R) | SP (red circles) → SSP (green diamonds), joined by arrows | `all_X.png` |
+| 5 | [`D4.R`](D4.R), [`D7.R`](D7.R) → [`plot_runtime.R`](plot_runtime.R) | Median sampling-only elapsed time over 30 replications | `D4_D7_runtime.jpeg` |
+| 6 / S1 | `D4.R` → [`plot_D4.R`](plot_D4.R) | D4 bulk-modulus NMAE (%) / RMSE (GPa) | `combined_Bulk_Modulus_D4_{NMAE,RMSE}.jpeg` |
+| 7 / S2 | `D4.R` → `plot_D4.R` | D4 formation-energy NMAE (%) / RMSE (eV) | `combined_Formation_Energy_D4_{NMAE,RMSE}.jpeg` |
+| 8 / S3 | `D7.R` → [`plot_D7.R`](plot_D7.R) | D7 bulk-modulus NMAE (%) / RMSE (GPa) | `combined_Bulk_Modulus_D7_{NMAE,RMSE}.jpeg` |
+| 9 | [`D7_max_level.R`](D7_max_level.R) | Coordinate maxima at `n = 70`; each box contains 30 designs, with jittered points | `D7_max_level.jpeg` |
 
-[Figure_4.R](Figure_4.R) compares `g = 0`, `0.5`, and `1` for a six-point design on a three-component simplex. It sources [sampling_strategy.R](sampling_strategy.R) and [MMSE_calculation.R](MMSE_calculation.R), generates a test set from 10,000 QMC points, and calculates MMSE at 100 values of `theta` from **0.1 to 2**.
+**Paper discrepancies:** the Figures 2–3 captions say 12 red points, while their rendered panels and the current scripts use 15 green points. The scripts preserve the plotted setting. Formation-energy RMSE is labeled eV, consistent with Figure 1; Figure 7's caption instead says GPa. S1–S3 are identified from the main-text references; the supplied PDF does not contain the supplementary figures. Figure 1 has no generating script in this folder. Timings and exact rendered output depend on the machine and R/package versions.
 
-**Associated figure file:** [MMSE_sensitivity_of_g.jpeg](MMSE_sensitivity_of_g.jpeg).
+## Data and saved results
 
+- **D4:** `pca_pspall4.csv`, 6,545 Al–Nb–Ti–Zr compositions; formation energy and bulk modulus; `n = 20, 30, 40, 50, 60`.
+- **D7:** `RHEA7unique.csv`, 12,012 Mo–Nb–Ta–Ti–V–W–Zr compositions; bulk modulus; `n = 50, 60, 70, 80, 90`.
+- Atom counts are divided by 128. Each experiment uses Random, QMC, K-medoids, SP, and SSP (`kappa = 1`), seeds 1–30, and Gaussian `rkriging` fits. Test sets exclude training indices; boundary points have at least one fraction equal to 0 or 1. NMAE is divided by the mean absolute response over the **whole candidate set** and multiplied by 100.
+- `D4.Rdata` / `D7.Rdata` store all metrics, sampling runtimes, selected row indices, and run metadata; `D4_metrics.csv` / `D7_metrics.csv` provide 750 rows each. `D4_session.txt` / `D7_session.txt` record R/package versions.
+- `Figure_2_results.rds`, `Figure_3_results.rds`, and `Figure_4_results.rds` save their designs and plot inputs. All three use 10,000 Sobol candidates; Figure 3 evaluates 40,000 Sobol points plus transformed corners. `D7_max_level.Rdata` and `.csv` save coordinate minima/maxima and selected indices (indices in Rdata); `D4_D7_runtime.csv` saves median runtimes.
 
-
-## Figure_5.R — Figure 5: Construction of SSP
-
-[Figure_5.R](Figure_5.R) sources [sampling_strategy.R](sampling_strategy.R) and compares six SP and SSP design points on a ternary plot. Red circles identify SP, green diamonds identify SSP, and arrows connect the corresponding points.
-
-**Output:** [all_X.png](all_X.png), exported at **7 × 6 inches, 600 dpi**.
-
-The script also draws separate SP and SSP plots to the active graphics device before exporting the combined illustration.
-
-## Figure_6.R — Figure 6: Runtime comparison
-
-[Figure_6.R](Figure_6.R) reads [D4_results.RData](D4_results.RData) and [D7_results.RData](D7_results.RData). For each method and design size, it calculates the median sampling runtime across 30 replications from `res[[i]]$rt_df`.
-
-**Output:** [D4_D7_runtime.jpeg](D4_D7_runtime.jpeg), exported at **14 × 6 inches, 600 dpi**.
-
-## Figures 7–9 and S1–S3: Prediction performance
-
-These figures are generated by [D4_results.R](D4_results.R) and [D7_results.R](D7_results.R).
-
-| Paper figure | Dataset and property | Metric | Generating script | Output filename |
-| --- | --- | --- | --- | --- |
-| Figure 7 | D4 bulk modulus | NMAE (%) | `D4_results.R` | [combined_Bulk_Modulus_D4_NMAE.jpeg](combined_Bulk_Modulus_D4_NMAE.jpeg) |
-| Figure 8 | D4 formation energy | NMAE (%) | `D4_results.R` | [combined_Formation_Energy_D4_NMAE.jpeg](combined_Formation_Energy_D4_NMAE.jpeg) |
-| Figure 9 | D7 bulk modulus | NMAE (%) | `D7_results.R` | [combined_Bulk_Modulus_D7_NMAE.jpeg](combined_Bulk_Modulus_D7_NMAE.jpeg) |
-| Figure S1 | D4 bulk modulus | RMSE (GPa) | `D4_results.R` | [combined_Bulk_Modulus_D4_RMSE.jpeg](combined_Bulk_Modulus_D4_RMSE.jpeg) |
-| Figure S2 | D4 formation energy | RMSE (eV) | `D4_results.R` | [combined_Formation_Energy_D4_RMSE.jpeg](combined_Formation_Energy_D4_RMSE.jpeg) |
-| Figure S3 | D7 bulk modulus | RMSE (GPa) | `D7_results.R` | [combined_Bulk_Modulus_D7_RMSE.jpeg](combined_Bulk_Modulus_D7_RMSE.jpeg) |
-
-Each image contains three panels in this order: **Full testing set**, **Boundary only**, and **Interior only**. All six images are exported at **10.5 × 6 inches, 600 dpi**.
-
-### D4_results.R — Four-component experiments
-
-The script reads `pca_pspall4.csv`, uses columns 54–57 (`Al`, `Nb`, `Ti`, `Zr`) as inputs, and uses columns 52–53 (`formation_energy`, `bulk_modulus`) as responses. It runs the five sampling methods at `n = c(20, 30, 40, 50, 60)`, with 30 replications per method and size, using functions in [D4_lib.R](D4_lib.R).
-
-It saves the results to `D4_results.RData` and produces the four D4 figures listed above. In the plotting section, `plot_test_sets()` combines the three testing scenarios using `plot_property_boxplot()` from `D4_lib.R`.
-
-### D7_results.R — Seven-component experiments
-
-The script reads `RHEA7unique.csv`, uses columns 4–10 (`Mo`, `Nb`, `Ta`, `Ti`, `V`, `W`, `Zr`) as inputs, and uses column 3 (`Bulk`) as the response. **D7 contains only bulk modulus in this workflow.** It is configured for `n = c(50, 60, 70, 80, 90)`, with 30 replications per method and size, using [D7_lib.R](D7_lib.R).
-
-It saves results to `D7_results.RData` and produces the two D7 figures listed above.
-
+Shared helpers: [`sampling_strategy.R`](sampling_strategy.R) implements the five designs and coordinate-wise SSP scaling/renormalization (Eqs. 14–17); [`MMSE_calculation.R`](MMSE_calculation.R) implements Gaussian MSE and its maximum; [`experiment_helpers.R`](experiment_helpers.R) runs GP evaluation and saves results; [`common.R`](common.R) handles paths, dependencies, and shared plotting settings. [`run_all.R`](run_all.R) executes the workflow; [`verify_results.R`](verify_results.R) checks all 1,500 prediction designs, 150 coordinate-maxima designs, saved metrics, and 14 image files.

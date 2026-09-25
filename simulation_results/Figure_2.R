@@ -1,109 +1,28 @@
-# Figure 2: Illustration of different experimental design strategies
-rm(list = ls())
-source("sampling_strategy.R")
+# Figure 2: random, QMC, and K-medoids designs on the three-component simplex.
+# Resolve paths for Rscript and source(), including invocation from another directory.
+entry_file <- local({
+  files <- Filter(Negate(is.null), lapply(sys.frames(), function(x) x$ofile))
+  if (length(files)) tail(files, 1)[[1]] else
+    sub("^--file=", "", grep("^--file=", commandArgs(), value = TRUE)[1])
+})
+source(file.path(dirname(normalizePath(entry_file, mustWork = TRUE)), "common.R"), local = TRUE)
 
-N = 1000
-p = 3
-n = 6
-candidate_set <- MOFAT::qmc_generate(N,p-1) # QMC points in [0,1]^{p-1}
-candidate_set <- unique(simplex_trans(candidate_set))
+require_packages(c(sampling_packages, "Ternary", "magick"))
+source(file.path(script_dir, "sampling_strategy.R"), local = TRUE)
 
-# random sampling
-idx = get_rand_idx(candidate_set, n, seed = 12)
-rand_X = candidate_set[idx,]
-
-png("rand_X.png", width = 7, height = 6, units = "in", res = 600)
-par(mar = c(0.6, 0.6, 0.6, 4.2), xpd = NA)
-Ternary::TernaryPlot(
-  atip = "x1",
-  btip = "x2",
-  ctip = "x3",
-  lab.cex = 1.7,
-  axis.cex = 1.5,
-  grid.lines = 5,
-  grid.minor.lines = 1,
-  grid.lty = "solid",
-  grid.minor.lty = "dotted",
-  col = NA,
-  grid.col = "grey85",
-  axis.col = "grey40",
-  ticks.col = "grey40",
-  axis.labels = seq(0, 1, by = 0.2),
-  axis.rotate = FALSE,
-  padding = 0.08
-)
-Ternary::TernaryPoints(
-  rand_X,
-  pch = 21,
-  bg = "red",
-  lwd = 0.9,
-  cex = 2
-)
-dev.off()
-
-# QMC sampling
-idx = get_sobol_idx(candidate_set, n, seed = 8)
-sobol_X = candidate_set[idx,]
-
-png("sobol_X.png", width = 7, height = 6, units = "in", res = 600)
-par(mar = c(0.6, 0.6, 0.6, 4.2), xpd = NA)
-Ternary::TernaryPlot(
-  atip = "x1",
-  btip = "x2",
-  ctip = "x3",
-  lab.cex = 1.7,
-  axis.cex = 1.5,
-  grid.lines = 5,
-  grid.minor.lines = 1,
-  grid.lty = "solid",
-  grid.minor.lty = "dotted",
-  col = NA,
-  grid.col = "grey85",
-  axis.col = "grey40",
-  ticks.col = "grey40",
-  axis.labels = seq(0, 1, by = 0.2),
-  axis.rotate = FALSE,
-  padding = 0.08
-)
-Ternary::TernaryPoints(
-  sobol_X,
-  pch = 21,
-  bg = "red",
-  lwd = 0.9,
-  cex = 2
-)
-dev.off()
-
-
-# K-medoids clustering
-idx = get_k_medoids_idx(candidate_set, n, seed = 8)
-k_medoids_X = candidate_set[idx,]
-
-png("k_med_X.png", width = 7, height = 6, units = "in", res = 600)
-par(mar = c(0.6, 0.6, 0.6, 4.2), xpd = NA)
-Ternary::TernaryPlot(
-  atip = "x1",
-  btip = "x2",
-  ctip = "x3",
-  lab.cex = 1.7,
-  axis.cex = 1.5,
-  grid.lines = 5,
-  grid.minor.lines = 1,
-  grid.lty = "solid",
-  grid.minor.lty = "dotted",
-  col = NA,
-  grid.col = "grey85",
-  axis.col = "grey40",
-  ticks.col = "grey40",
-  axis.labels = seq(0, 1, by = 0.2),
-  axis.rotate = FALSE,
-  padding = 0.08
-)
-Ternary::TernaryPoints(
-  k_medoids_X,
-  pch = 21,
-  bg = "red",
-  lwd = 0.9,
-  cex = 2
-)
-dev.off()
+p <- 3L
+n <- 15L # Matches the plotted panels; the paper caption instead says n = 12.
+candidate_set <- unique(simplex_trans(spacefillr::generate_sobol_set(10000, p - 1)))
+designs <- list(Random = get_rand(candidate_set, n, seed = 3),
+                QMC = get_sobol(candidate_set, n, seed = 3),
+                `K-medoids` = get_k_medoids(candidate_set, n, seed = 1))
+filenames <- c(Random = "rand_X.png", QMC = "sobol_X.png", `K-medoids` = "k_med_X.png")
+for (method in names(designs)) {
+  save_ternary(filenames[[method]], function() {
+    ternary_axes()
+    Ternary::TernaryPoints(designs[[method]]$X_sub, pch = 21, bg = "green", lwd = 0.9, cex = 2)
+  })
+}
+saveRDS(list(n = n, candidate_set = candidate_set, designs = designs,
+             seeds = c(Random = 3L, QMC = 3L, `K-medoids` = 1L)),
+        file.path(output_dir, "Figure_2_results.rds"))
