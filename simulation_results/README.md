@@ -38,7 +38,6 @@ All filenames below are relative to `figures/`. Prediction plots contain **full*
 | 8 / S3 | `D7.R` → [`plot_D7.R`](plot_D7.R) | D7 bulk-modulus NMAE (%) / RMSE (GPa) | `combined_Bulk_Modulus_D7_{NMAE,RMSE}.jpeg` |
 | 9 | [`D7_max_level.R`](D7_max_level.R) | Coordinate maxima at `n = 70`; each box contains 30 designs, with jittered points | `D7_max_level.jpeg` |
 
-**Paper discrepancies:** the Figures 2–3 captions say 12 red points, while their rendered panels and the current scripts use 15 green points. The scripts preserve the plotted setting. Formation-energy RMSE is labeled eV, consistent with Figure 1; Figure 7's caption instead says GPa. S1–S3 are identified from the main-text references; the supplied PDF does not contain the supplementary figures. Figure 1 has no generating script in this folder. Timings and exact rendered output depend on the machine and R/package versions.
 
 ## Data and saved results
 
