@@ -14,8 +14,9 @@ source(file.path(script_dir, "MMSE_calculation.R"), local = TRUE)
 p <- 3L
 n <- 15L # Matches the plotted panels; the paper caption instead says n = 12.
 candidate_set <- unique(simplex_trans(spacefillr::generate_sobol_set(10000, p - 1)))
-# MOFAT adds hypercube corners before the simplex transformation.
-test_set <- unique(simplex_trans(MOFAT::qmc_generate(40000, p - 1)))
+# Evaluate Sobol points on the simplex and explicitly include its vertices.
+test_set <- simplex_trans(spacefillr::generate_sobol_set(40000, p - 1))
+test_set <- rbind(test_set, diag(p))
 theta <- 0.45
 designs <- list(SP = get_sp(candidate_set, n, seed = 3),
                 SSP = get_ssp(candidate_set, n, seed = 3, kappa = 1))

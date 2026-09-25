@@ -20,7 +20,7 @@ require_packages <- function(packages) {
 
 sampling_packages <- c("spacefillr", "SPlit", "cluster", "support")
 plot_packages <- c("ggplot2", "tidyr", "tidyselect")
-ternary_packages <- c("Ternary", "magick", "PlotTools", "MOFAT")
+ternary_packages <- c("Ternary", "magick", "PlotTools")
 
 method_colors <- c(Random = "#D7191C", QMC = "#1A9641", "K-medoids" = "#984EA3",
                    SP = "#FF7F00", SSP = "#0072B2")

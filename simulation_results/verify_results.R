@@ -72,6 +72,11 @@ f2 <- readRDS(file.path(output_dir, "Figure_2_results.rds"))
 f3 <- readRDS(file.path(output_dir, "Figure_3_results.rds"))
 f4 <- readRDS(file.path(output_dir, "Figure_4_results.rds"))
 stopifnot(f2$n == 15L, f3$n == 15L, f4$n == 15L, f3$theta == 0.45, f3$kappa == 1)
+# The MSE test set contains 40,000 simplex points followed by all three vertices.
+stopifnot(identical(dim(f3$test_set), c(40003L, 3L)),
+          all(is.finite(f3$test_set)), all(f3$test_set >= 0 & f3$test_set <= 1),
+          max(abs(rowSums(f3$test_set) - 1)) < 1e-12,
+          identical(unname(tail(f3$test_set, 3L)), diag(3L)))
 for (design in c(f2$designs, f3$designs, list(f4$SP, f4$SSP))) {
   stopifnot(nrow(design$X_sub) == 15L, !anyDuplicated(design$idx),
             max(abs(rowSums(design$X_sub) - 1)) < 1e-12)
